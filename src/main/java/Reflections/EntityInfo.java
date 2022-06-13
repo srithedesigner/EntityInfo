@@ -1,4 +1,4 @@
-package src.main.java.Reflections;
+package Reflections;
 
 import java.util.List;
 

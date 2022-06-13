@@ -1,11 +1,11 @@
-package src.main.java.Reflections;
+package Reflections;
 
-import com.google.common.reflect.Reflection;
 import org.reflections.Reflections;
 import org.reflections.scanners.SubTypesScanner;
 import org.reflections.scanners.TypeAnnotationsScanner;
 
-import javax.swing.text.html.parser.Entity;
+import javax.persistence.JoinColumn;
+import javax.persistence.JoinColumns;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -13,11 +13,9 @@ import java.util.List;
 
 public class PackageInfo {
 
-    private String packageName;
     private Reflections reflections;
 
     public PackageInfo(String packageName) {
-        this.packageName = packageName;
         this.reflections = new Reflections(packageName, new TypeAnnotationsScanner(), new SubTypesScanner(false));
     }
 
@@ -30,39 +28,59 @@ public class PackageInfo {
             List<Field> fields = Arrays.stream(entity.getDeclaredFields()).toList();
             List<Relation> relations = new ArrayList<>();
             for (Field field : fields){
-                if(field.getAnnotation(javax.persistence.OneToOne.class) != null){
-                    Relation relation = new Relation();
-                    relation.entityName = field.getName();
-                    relation.TypeOfRelation = "OneToOne";
-                    relations.add(relation);
-                }
-                if(field.getAnnotation(javax.persistence.OneToMany.class) != null){
-                    Relation relation = new Relation();
-                    relation.entityName = field.getName();
-                    relation.TypeOfRelation = "OneToMany";
-                    relations.add(relation);
-                }
 
                 if(field.getAnnotation(javax.persistence.ManyToOne.class) != null){
+                    List<String> joins = new ArrayList<>();
                     Relation relation = new Relation();
                     relation.entityName = field.getName();
                     relation.TypeOfRelation = "ManyToOne";
-                    relations.add(relation);
+
+                    handle(relations, field, joins, relation);
+
+                }
+
+                if(field.getAnnotation(javax.persistence.OneToMany.class) != null){
+                    List<String> joins = new ArrayList<>();
+                    Relation relation = new Relation();
+                    relation.entityName = field.getName();
+                    relation.TypeOfRelation = "OneToMany";
+
+                    handle(relations, field, joins, relation);
+
+                }
+
+                if(field.getAnnotation(javax.persistence.OneToOne.class) != null){
+                    List<String> joins = new ArrayList<>();
+                    Relation relation = new Relation();
+                    relation.entityName = field.getName();
+                    relation.TypeOfRelation = "ManyToOne";
+
+                    handle(relations, field, joins, relation);
+
                 }
 
                 if(field.getAnnotation(javax.persistence.ManyToMany.class) != null){
+                    List<String> joins = new ArrayList<>();
                     Relation relation = new Relation();
                     relation.entityName = field.getName();
-                    relation.TypeOfRelation = "ManyToMany";
-                    relations.add(relation);
+                    relation.TypeOfRelation = "ManyToOne";
+
+                    handle(relations, field, joins, relation);
+
                 }
+
+
+
+
             }
 
-            EntityInfo entityInfo = new EntityInfo();
-            entityInfo.name = entity.getName();
-            entityInfo.relationList = relations;
-            entityInfo.tableName = entity.getAnnotation(javax.persistence.Table.class).name();
-            entityInfos.add(entityInfo);
+            if(relations.size() != 0){
+                EntityInfo entityInfo = new EntityInfo();
+                entityInfo.name = entity.getName();
+                entityInfo.relationList = relations;
+                entityInfo.tableName = entity.getAnnotation(javax.persistence.Table.class).name();
+                entityInfos.add(entityInfo);
+            }
 
 
         }
@@ -73,5 +91,24 @@ public class PackageInfo {
 
 
 
+    }
+
+    private void handle(List<Relation> relations, Field field, List<String> joins, Relation relation) {
+        if(field.getAnnotation(JoinColumn.class) != null){
+            String joinColumn = field.getAnnotation(JoinColumn.class).name();
+            joins.add(joinColumn);
+        }
+
+        if(field.getAnnotation(JoinColumns.class) != null){
+            JoinColumn[] joinColumns = field.getAnnotation(JoinColumns.class).value();
+            for(JoinColumn joinColumn : joinColumns){
+                joins.add(joinColumn.name());
+            }
+        }
+
+        relation.joinColumns = joins;
+        if(joins.size() != 0){
+            relations.add(relation);
+        }
     }
 }

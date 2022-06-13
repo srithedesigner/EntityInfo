@@ -1,4 +1,4 @@
-package src.main.java.Models;
+package Models;
 
 import javax.persistence.*;
 
@@ -13,7 +13,11 @@ public class Task {
     private String name;
 
     @ManyToOne
-    @JoinColumn(name = "user_id", nullable = false)
+    //@JoinColumn(name = "user_id", nullable = false)
+    @JoinColumns({
+            @JoinColumn(name = "abcd"),
+            @JoinColumn(name = "dfd")
+    })
     private User user;
 
     public Task() {
